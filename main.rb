@@ -34,8 +34,8 @@ class Game < Gosu::Window
 
     def start_game()
         # intialize the players
-        @player_a = Player.new(100, HEIGHT / 2, 270, "Red")
-        @player_b = Player.new(WIDTH - 100, HEIGHT / 2, 90, "Blue")
+        @player_a = Player.new(50, HEIGHT - 150, 270, "Red")
+        @player_b = Player.new(WIDTH - 50, 50, 90, "Blue")
 
         # initialize each players bullets
         @bullets_a = Array.new()
@@ -43,13 +43,24 @@ class Game < Gosu::Window
 
         # generate the environment with obstacles
         @obstacles = Array.new()
-        i = 0
-        count = 1
+        @obstacles.push(Obstacle.new(200, HEIGHT - 200, 0, "Green"))
+        @obstacles.push(Obstacle.new(200, HEIGHT - 270, 0, "Grey"))
+        @obstacles.push(Obstacle.new(200, HEIGHT - 340, 0, "Green"))
+        @obstacles.push(Obstacle.new(200, HEIGHT - 410, 0, "Green"))
+        @obstacles.push(Obstacle.new(210, HEIGHT - 480, 90, "Green"))
+        @obstacles.push(Obstacle.new(280, HEIGHT - 480, 90, "Grey"))
+        @obstacles.push(Obstacle.new(350, HEIGHT - 480, 90, "Grey"))
+        @obstacles.push(Obstacle.new(420, HEIGHT - 480, 90, "Grey"))
 
-        while i < count
-            @obstacles.push(Obstacle.new(200, HEIGHT - 200, "Green"))
-            i += 1
-        end
+
+        @obstacles.push(Obstacle.new(200 + 400, HEIGHT - 200 - 200, 0, "Green"))
+        @obstacles.push(Obstacle.new(200 + 400, HEIGHT - 270 - 200, 0, "Grey"))
+        @obstacles.push(Obstacle.new(200 + 400, HEIGHT - 340 - 200 - 140, 0, "Green"))
+        @obstacles.push(Obstacle.new(200 + 400, HEIGHT - 410 - 200, 0, "Grey"))
+        @obstacles.push(Obstacle.new(210 + 400, HEIGHT - 480 - 60, 90, "Grey"))
+        @obstacles.push(Obstacle.new(280 + 400, HEIGHT - 480 - 60, 90, "Green"))
+        @obstacles.push(Obstacle.new(350 + 400, HEIGHT - 480 - 60, 90, "Green"))
+        @obstacles.push(Obstacle.new(420 + 400, HEIGHT - 480 - 60, 90, "Grey"))
 
         # initialize explosion array
         @explosions = Array.new()
@@ -250,7 +261,7 @@ class Game < Gosu::Window
 
         while i < count
             obstacle = obstacles[i]
-            obstacle.image.draw_rot(obstacle.x, obstacle.y, ZOrder::PLAYER, 0)
+            obstacle.image.draw_rot(obstacle.x, obstacle.y, ZOrder::PLAYER, obstacle.rotation)
             i += 1
         end
     end
