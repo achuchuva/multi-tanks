@@ -1,5 +1,7 @@
+
 require 'rubygems'
 require 'gosu'
+
 require './player.rb'
 require './bullet.rb'
 require './obstacle.rb'
@@ -43,24 +45,24 @@ class Game < Gosu::Window
 
         # generate the environment with obstacles
         @obstacles = Array.new()
-        @obstacles.push(Obstacle.new(200, HEIGHT - 200, 0, "Green"))
-        @obstacles.push(Obstacle.new(200, HEIGHT - 270, 0, "Grey"))
-        @obstacles.push(Obstacle.new(200, HEIGHT - 340, 0, "Green"))
-        @obstacles.push(Obstacle.new(200, HEIGHT - 410, 0, "Green"))
-        @obstacles.push(Obstacle.new(210, HEIGHT - 480, 90, "Green"))
-        @obstacles.push(Obstacle.new(280, HEIGHT - 480, 90, "Grey"))
-        @obstacles.push(Obstacle.new(350, HEIGHT - 480, 90, "Grey"))
-        @obstacles.push(Obstacle.new(420, HEIGHT - 480, 90, "Grey"))
+        @obstacles.push(Obstacle.new(200, HEIGHT - 220, 0, "Green"))
+        @obstacles.push(Obstacle.new(200, HEIGHT - 290, 0, "Grey"))
+        @obstacles.push(Obstacle.new(200, HEIGHT - 360, 0, "Green"))
+        @obstacles.push(Obstacle.new(200, HEIGHT - 430, 0, "Green"))
+        @obstacles.push(Obstacle.new(210, HEIGHT - 500, 90, "Green"))
+        @obstacles.push(Obstacle.new(280, HEIGHT - 500, 90, "Grey"))
+        @obstacles.push(Obstacle.new(350, HEIGHT - 500, 90, "Grey"))
+        @obstacles.push(Obstacle.new(420, HEIGHT - 500, 90, "Grey"))
 
 
-        @obstacles.push(Obstacle.new(200 + 400, HEIGHT - 200 - 200, 0, "Green"))
-        @obstacles.push(Obstacle.new(200 + 400, HEIGHT - 270 - 200, 0, "Grey"))
-        @obstacles.push(Obstacle.new(200 + 400, HEIGHT - 340 - 200 - 140, 0, "Green"))
-        @obstacles.push(Obstacle.new(200 + 400, HEIGHT - 410 - 200, 0, "Grey"))
-        @obstacles.push(Obstacle.new(210 + 400, HEIGHT - 480 - 60, 90, "Grey"))
-        @obstacles.push(Obstacle.new(280 + 400, HEIGHT - 480 - 60, 90, "Green"))
-        @obstacles.push(Obstacle.new(350 + 400, HEIGHT - 480 - 60, 90, "Green"))
-        @obstacles.push(Obstacle.new(420 + 400, HEIGHT - 480 - 60, 90, "Grey"))
+        @obstacles.push(Obstacle.new(600, HEIGHT - 400, 0, "Green"))
+        @obstacles.push(Obstacle.new(600, HEIGHT - 470, 0, "Grey"))
+        @obstacles.push(Obstacle.new(600, HEIGHT - 680, 0, "Green"))
+        @obstacles.push(Obstacle.new(600, HEIGHT - 610, 0, "Grey"))
+        @obstacles.push(Obstacle.new(610, HEIGHT - 540, 90, "Grey"))
+        @obstacles.push(Obstacle.new(680, HEIGHT - 540, 90, "Green"))
+        @obstacles.push(Obstacle.new(750, HEIGHT - 540, 90, "Green"))
+        @obstacles.push(Obstacle.new(820, HEIGHT - 540, 90, "Grey"))
 
         # initialize explosion array
         @explosions = Array.new()
@@ -113,19 +115,23 @@ class Game < Gosu::Window
         # check player b bounds
         check_player_bounds(@player_b)
 
-        # collisions
+        # player collisions
         if collides_with?(@player_a, @player_b)
             resolve_collision(@player_a, @player_b, true)
         end
 
-        obstacle = collides_with_obstacle(@player_a, @obstacles)
-        if (obstacle != nil)
-            resolve_collision(@player_a, obstacle, false)
+        # player a collision with obstacles
+        @obstacles.each do |obstacle|
+            if collides_with?(@player_a, obstacle)
+                resolve_collision(@player_a, obstacle, false)
+            end
         end
 
-        obstacle = collides_with_obstacle(@player_b, @obstacles)
-        if (obstacle != nil)
-            resolve_collision(@player_b, obstacle, false)
+        # player b collision with obstacles
+        @obstacles.each do |obstacle|
+            if collides_with?(@player_b, obstacle)
+                resolve_collision(@player_b, obstacle, false)
+            end
         end
 
         # replenish bullets
@@ -137,63 +143,77 @@ class Game < Gosu::Window
         move_bullets(@bullets_b)
 
         # remove bullets based on their collision
-        self.remove_bullets()
+        remove_bullets()
 
-        self.remove_explosions()
+        remove_explosions()
 
         # handle game over
         handle_game_over()
     end
 
     def collides_with_obstacle(object, obstacles)
-        i = 0
-        count = obstacles.length
-
-        while i < count
-            obstacle = obstacles[i]
+        obstacles.each do |obstacle|
             if collides_with?(object, obstacle)
                 return obstacle
             end
-            i += 1
         end
 
         return nil
     end
 
     def collides_with?(object1, object2)
-        if object1.x < object2.x + object2.width &&
-           object1.x + object1.width > object2.x &&
-           object1.y < object2.y + object2.height &&
-           object1.y + object1.height > object2.y
-            true
+        # calculate the half-width and half-height of each rectangle
+        half_width = (object1.width / 2.0) + (object2.width / 2.0)
+        half_height = (object1.height / 2.0) + (object2.height / 2.0)
+    
+        # calculate the center positions of each rectangle
+        self_center_x = object1.x
+        self_center_y = object1.y
+        other_center_x = object2.x
+        other_center_y = object2.y
+    
+        # calculate the distance between the centers of the two rectangles
+        distance_x = (self_center_x - other_center_x).abs
+        distance_y = (self_center_y - other_center_y).abs
+    
+        # check for collision by comparing the distance with the half-width and half-height
+        if distance_x < half_width && distance_y < half_height
+          return true
         else
-            false
+          return false
         end
-    end
+      end
 
     def resolve_collision(object1, object2, can_be_pushed)
-        overlap_x = [object1.x + object1.width - object2.x, object2.x + object2.width - object1.x].min
-        overlap_y = [object1.y + object1.height - object2.y, object2.y + object2.height - object1.y].min
-
+        # calculate the overlap in the x-axis and y-axis
+        overlap_x = (object1.width + object2.width) / 2.0 - (object2.x - object1.x).abs
+        overlap_y = (object1.height + object2.height) / 2.0 - (object2.y - object1.y).abs
+    
         if overlap_x < overlap_y
+            # resolve collision horizontally
             if object1.x < object2.x
+                # offset the object/s
                 object1.x -= overlap_x
                 if can_be_pushed
                     object2.x += overlap_x
                 end
             else
+                # offset the object/s
                 object1.x += overlap_x
                 if can_be_pushed
                     object2.x -= overlap_x
                 end
             end
         else
+            # resolve collision vertically
             if object1.y < object2.y
+                # offset the object/s
                 object1.y -= overlap_y
                 if can_be_pushed
                     object2.y += overlap_y
                 end
             else
+                # offset the object/s
                 object1.y += overlap_y
                 if can_be_pushed
                     object2.y -= overlap_y
@@ -219,12 +239,8 @@ class Game < Gosu::Window
         draw_environment(@obstacles)
 
         # draw explosions
-        i = 0
-        count = @explosions.length
-
-        while (i < count)
-            draw_explosion(@explosions[i])
-            i += 1
+        @explosions.each do |explosion|
+            draw_explosion(explosion)
         end
 
         # draw ui
@@ -245,24 +261,14 @@ class Game < Gosu::Window
     end
 
     def draw_bullets(bullets)
-        i = 0
-        count = bullets.length
-
-        while i < count
-            bullet = bullets[i]
+        bullets.each do |bullet|
             bullet.image.draw_rot(bullet.x, bullet.y, ZOrder::PLAYER, bullet.rotation)
-            i += 1
         end
     end
 
     def draw_environment(obstacles)
-        i = 0
-        count = obstacles.length
-
-        while i < count
-            obstacle = obstacles[i]
+        obstacles.each do |obstacle|
             obstacle.image.draw_rot(obstacle.x, obstacle.y, ZOrder::PLAYER, obstacle.rotation)
-            i += 1
         end
     end
 
@@ -355,13 +361,8 @@ class Game < Gosu::Window
     end
 
     def move_bullets(bullets)
-        i = 0
-        count = bullets.length
-
-        while i < count
-            bullet = bullets[i]
+        bullets.each do |bullet|
             move_bullet(bullet)
-            i += 1
         end
     end
 
@@ -419,13 +420,11 @@ class Game < Gosu::Window
         if @player_a.health <= 0
             @game_over = true
             @winner = @player_b
-            @bullets = Array.new()
         end
 
         if @player_b.health <= 0
             @game_over = true
             @winner = @player_a
-            @bullets = Array.new()
         end
     end
 end
