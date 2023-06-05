@@ -13,7 +13,9 @@ class Explosion
     end
 end
 
+# draw the explosion frame by frame
 def draw_explosion explosion
+    # the image property is an array of the sliced images
     current_img = explosion.image[Gosu.milliseconds / 120 % explosion.image.length]
     current_img.draw(explosion.x, explosion.y, ZOrder::UI, 1.0, 1.0)
 
@@ -22,6 +24,7 @@ def draw_explosion explosion
     end
 end
 
+# if the explosion has finished set to true, remove it
 def remove_explosions
     @explosions.reject! do |explosion|
         if explosion.finished

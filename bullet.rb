@@ -21,6 +21,7 @@ class Bullet
     end
 end
 
+# move the individual bullet according to the rotation
 def move_bullet(bullet)
     radians = Gosu.degrees_to_radians(bullet.rotation - 90)
     bullet.x += Math.cos(radians) * bullet.speed

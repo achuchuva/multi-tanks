@@ -1,6 +1,7 @@
 require 'rubygems'
 require 'gosu'
 
+# obstacle record
 class Obstacle
     attr_accessor :color, :image, :x, :y, :rotation, :width, :height
 

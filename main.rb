@@ -153,6 +153,7 @@ class Game < Gosu::Window
         handle_game_over()
     end
 
+    # function for checking collision with all obstacles at once, used for bullets
     def collides_with_obstacle(object, obstacles)
         obstacles.each do |obstacle|
             if collides_with?(object, obstacle)
@@ -163,6 +164,7 @@ class Game < Gosu::Window
         return nil
     end
 
+    # determines whether the two objects overlap
     def collides_with?(object1, object2)
         # calculate the half-width and half-height of each rectangle
         half_width = (object1.width / 2.0) + (object2.width / 2.0)
@@ -180,6 +182,7 @@ class Game < Gosu::Window
         end
     end
 
+    # actually apply changes to objects position based on overlap
     def resolve_collision(object1, object2, can_be_pushed)
         # calculate the overlap in the x-axis and y-axis
         overlap_x = (object1.width + object2.width) / 2.0 - (object2.x - object1.x).abs
@@ -246,9 +249,11 @@ class Game < Gosu::Window
         draw_end_screens()
     end
 
+    # render the player and the gun barrel
     def draw_player(player)
         if player.health > 0
             player.image.draw_rot(player.x, player.y, ZOrder::PLAYER, player.rotation)
+            # extra calculations are needed to ensure the barrel is at the correct position
             radians = Gosu.degrees_to_radians(player.rotation + 90)
             barrelX = 25 * Math.cos(radians)
             barrelY = 25 * Math.sin(radians)
@@ -256,24 +261,28 @@ class Game < Gosu::Window
         end
     end
 
+    # loop through and draw bullets
     def draw_bullets(bullets)
         bullets.each do |bullet|
             bullet.image.draw_rot(bullet.x, bullet.y, ZOrder::PLAYER, bullet.rotation)
         end
     end
 
+    # loop through and draw obstacles
     def draw_environment(obstacles)
         obstacles.each do |obstacle|
             obstacle.image.draw_rot(obstacle.x, obstacle.y, ZOrder::PLAYER, obstacle.rotation)
         end
     end
 
+    # draw the UI seen during gameplay
     def draw_ui
         Gosu.draw_rect(0, HEIGHT - 100, WIDTH, 100, Gosu::Color::WHITE, ZOrder::UI, mode=:default)
         draw_player_ui(@player_a, 0, "Player 1")
         draw_player_ui(@player_b, WIDTH / 2, "Player 2")
     end
 
+    # draw the actual player properties like score, health and ammo
     def draw_player_ui(player, left_x, player_name)
         @large_font.draw_text(player_name, left_x + 10, HEIGHT - 80, ZOrder::UI, 1, 1, Gosu::Color::RED)
         @font.draw_text("Score: " + player.score.to_s, left_x + 20, HEIGHT - 40, ZOrder::UI, 1, 1, Gosu::Color::BLACK)
@@ -283,17 +292,19 @@ class Game < Gosu::Window
         draw_bar(left_x + 240, HEIGHT - 80, player.ammo, MAX_AMMO, 100, Gosu::Color.new(255, 165, 0))
     end
 
+    # draw a bar that can be filled depending on the passed value
     def draw_bar(x, y, value, max, width, color)
         bar_width = (value.to_f / max.to_f) * width.to_f
         bg = Gosu::Color::GRAY
 
-        # Render the background bar
+        # render the background bar
         draw_quad(x, y, bg, x + width, y, bg, x + width, y + 20, bg, x, y + 20, bg, ZOrder::UI, :default)
     
-        # Render the filled portion of the bar
+        # render the filled portion of the bar
         draw_quad(x, y, color, x + bar_width, y, color, x + bar_width, y + 20, color, x, y + 20, color, ZOrder::UI, :default)
     end
 
+    # if the game state is not playing, an end screen will be drawn
     def draw_end_screens()
         if @game_state == GameState::INITIALIZED 
             draw_rect(290, 240, 420, 320, Gosu::Color::BLACK, ZOrder::UI, :default)
@@ -306,6 +317,7 @@ class Game < Gosu::Window
         end
     end
 
+    # draw UI for the game startup
     def draw_startup()
         @large_font.draw_text("MULTI-TANKS", 390, 260, ZOrder::UI, 1, 1, Gosu::Color::RED)
         @font.draw_text("Two player tank game", 310, 330, ZOrder::UI, 1, 1, Gosu::Color::BLACK)
@@ -317,6 +329,7 @@ class Game < Gosu::Window
         @font.draw_text("BATTLE", 465, 495, ZOrder::UI, 1, 1, Gosu::Color::WHITE)
     end
 
+    # draw UI for the game over screen
     def draw_game_over()
         text = @winner == @player_a ? "PLAYER 1 WINS!" : "PLAYER 2 WINS!"
         @large_font.draw_text(text, 360, 300, ZOrder::UI, 1, 1, Gosu::Color::RED)
@@ -328,6 +341,7 @@ class Game < Gosu::Window
 
     # handle the button presses
     def button_down(id)
+        # if the game is playing, handle shooting for each player
         if @game_state == GameState::PLAYING
             if id == Gosu::KbSpace
                 player_shoot(@player_a, @bullets_a)
@@ -338,6 +352,7 @@ class Game < Gosu::Window
             end
         end
 
+        # if the game is not playing, handle mouse clicks that appear as button clicks
         if id == Gosu::MsLeft
             if @game_state == GameState::INITIALIZED && mouse_over_quad(450, 480, 550, 530)
                 @game_state = GameState::PLAYING
@@ -348,6 +363,7 @@ class Game < Gosu::Window
         end
     end
 
+    # determine if the mouse is over specified coordinates
     def mouse_over_quad(x1, y1, x2, y2)
         if ((mouse_x > x1 && mouse_x < x2) && (mouse_y > y1 && mouse_y < y2))
             true
@@ -356,12 +372,14 @@ class Game < Gosu::Window
         end
     end
 
+    # move bullets
     def move_bullets(bullets)
         bullets.each do |bullet|
             move_bullet(bullet)
         end
     end
 
+    # remove bullets based on collision
     def remove_bullets
         @bullets_a.reject! do |bullet|
             if bullet.y > HEIGHT || bullet.y < 0 || bullet.x > WIDTH || bullet.x < 0
@@ -410,6 +428,7 @@ class Game < Gosu::Window
         end
     end
 
+    # change state to game over and determine a winner
     def handle_game_over()
         if @player_a.health <= 0
             @game_state = GameState::GAME_OVER
