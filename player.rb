@@ -60,9 +60,10 @@ end
 
 def player_shoot(player, bullets)
     if (player.ammo > 0)
+        fire = Gosu::Song.new("media/Sound/fire.mp3")
+        fire.play(false)
         bullets.push(Bullet.new(player.x, player.y, player.rotation + 180, player.color))
         player.ammo -= 1
-        player.next_tick = (Gosu.milliseconds / 1000) + FIRE_RATE
     end
 end
 

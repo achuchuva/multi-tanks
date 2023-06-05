@@ -10,6 +10,11 @@ module ZOrder
     BACKGROUND, PLAYER, UI = *0..2
 end
 
+# different game states
+module GameState
+    INITIALIZED, PLAYING, GAME_OVER = *0..2
+end
+
 # window constants
 WIDTH = 1000
 HEIGHT = 800
@@ -25,8 +30,7 @@ class Game < Gosu::Window
         @background = Gosu::Image.new("media/PNG/Environment/bg.png")
 
         # initialize some global variables
-        @started = false
-        @game_over = false
+        @game_state = GameState::INITIALIZED
         @winner = nil
 
         start_game()
@@ -52,7 +56,6 @@ class Game < Gosu::Window
         @obstacles.push(Obstacle.new(350, HEIGHT - 500, 90, "Grey"))
         @obstacles.push(Obstacle.new(420, HEIGHT - 500, 90, "Grey"))
 
-
         @obstacles.push(Obstacle.new(600, HEIGHT - 400, 0, "Green"))
         @obstacles.push(Obstacle.new(600, HEIGHT - 470, 0, "Grey"))
         @obstacles.push(Obstacle.new(600, HEIGHT - 680, 0, "Green"))
@@ -69,7 +72,7 @@ class Game < Gosu::Window
     # update method that is called repeatedly per second
     def update
         # don't allow movement if the game hasn't started or is over
-        if !@started || @game_over
+        if @game_state != GameState::PLAYING
             return nil
         end
 
@@ -143,6 +146,7 @@ class Game < Gosu::Window
         # remove bullets based on their collision
         remove_bullets()
 
+        # remove explosions over time
         remove_explosions()
 
         # handle game over
@@ -164,23 +168,17 @@ class Game < Gosu::Window
         half_width = (object1.width / 2.0) + (object2.width / 2.0)
         half_height = (object1.height / 2.0) + (object2.height / 2.0)
     
-        # calculate the center positions of each rectangle
-        self_center_x = object1.x
-        self_center_y = object1.y
-        other_center_x = object2.x
-        other_center_y = object2.y
-    
         # calculate the distance between the centers of the two rectangles
-        distance_x = (self_center_x - other_center_x).abs
-        distance_y = (self_center_y - other_center_y).abs
+        distance_x = (object1.x - object2.x).abs
+        distance_y = (object1.y - object2.y).abs
     
         # check for collision by comparing the distance with the half-width and half-height
         if distance_x < half_width && distance_y < half_height
-          return true
+            return true
         else
-          return false
+            return false
         end
-      end
+    end
 
     def resolve_collision(object1, object2, can_be_pushed)
         # calculate the overlap in the x-axis and y-axis
@@ -297,11 +295,11 @@ class Game < Gosu::Window
     end
 
     def draw_end_screens()
-        if !@started
+        if @game_state == GameState::INITIALIZED 
             draw_rect(290, 240, 420, 320, Gosu::Color::BLACK, ZOrder::UI, :default)
             draw_rect(300, 250, 400, 300, Gosu::Color::WHITE, ZOrder::UI, :default)
             draw_startup()
-        elsif @game_over
+        elsif @game_state == GameState::GAME_OVER
             draw_rect(290, 240, 420, 320, Gosu::Color::BLACK, ZOrder::UI, :default)
             draw_rect(300, 250, 400, 300, Gosu::Color::WHITE, ZOrder::UI, :default)
             draw_game_over()
@@ -330,7 +328,7 @@ class Game < Gosu::Window
 
     # handle the button presses
     def button_down(id)
-        if @started && !@game_over
+        if @game_state == GameState::PLAYING
             if id == Gosu::KbSpace
                 player_shoot(@player_a, @bullets_a)
             end
@@ -341,10 +339,10 @@ class Game < Gosu::Window
         end
 
         if id == Gosu::MsLeft
-            if !@started && mouse_over_quad(450, 480, 550, 530)
-                @started = true
-            elsif @game_over && mouse_over_quad(400, 480, 600, 530)
-                @game_over = false
+            if @game_state == GameState::INITIALIZED && mouse_over_quad(450, 480, 550, 530)
+                @game_state = GameState::PLAYING
+            elsif @game_state == GameState::GAME_OVER && mouse_over_quad(400, 480, 600, 530)
+                @game_state = GameState::PLAYING
                 start_game()
             end
         end
@@ -372,12 +370,16 @@ class Game < Gosu::Window
             elsif collides_with_obstacle(bullet, @obstacles)
                 # the bullet collides with obstacle
                 @explosions.push(Explosion.new(bullet.x, bullet.y))
+                hit = Gosu::Song.new("media/Sound/hit.wav")
+                hit.play(false)
                 true
-            elsif Gosu.distance(bullet.x, bullet.y, @player_b.x, @player_b.y) < 50
+            elsif collides_with?(bullet, @player_b)
                 # the bullet collided with player b
                 player_take_damage(@player_b, bullet.damage)
                 @explosions.push(Explosion.new(bullet.x, bullet.y))
-                @player_a.score += (50 - Gosu.distance(bullet.x, bullet.y, @player_b.x, @player_b.y)).to_i
+                hit = Gosu::Song.new("media/Sound/hit.wav")
+                hit.play(false)
+                @player_a.score += (100 - Gosu.distance(bullet.x, bullet.y, @player_b.x, @player_b.y)).to_i
                 true
             else
                 false
@@ -391,22 +393,16 @@ class Game < Gosu::Window
             elsif collides_with_obstacle(bullet, @obstacles)
                 # the bullet collides with obstacle
                 @explosions.push(Explosion.new(bullet.x, bullet.y))
+                hit = Gosu::Song.new("media/Sound/hit.wav")
+                hit.play(false)
                 true
-            elsif Gosu.distance(bullet.x, bullet.y, @player_a.x, @player_a.y) < 50
+            elsif collides_with?(bullet, @player_a)
                 # the bullet collided with player a
                 player_take_damage(@player_a, bullet.damage)
                 @explosions.push(Explosion.new(bullet.x, bullet.y))
-                @player_b.score += (50 - Gosu.distance(bullet.x, bullet.y, @player_a.x, @player_a.y)).to_i
-                true
-            else
-                false
-            end
-        end
-    end
-
-    def remove_explosions
-        @explosions.reject! do |explosion|
-            if explosion.finished
+                hit = Gosu::Song.new("media/Sound/hit.wav")
+                hit.play(false)
+                @player_b.score += (100 - Gosu.distance(bullet.x, bullet.y, @player_a.x, @player_a.y)).to_i
                 true
             else
                 false
@@ -416,12 +412,12 @@ class Game < Gosu::Window
 
     def handle_game_over()
         if @player_a.health <= 0
-            @game_over = true
+            @game_state = GameState::GAME_OVER
             @winner = @player_b
         end
 
         if @player_b.health <= 0
-            @game_over = true
+            @game_state = GameState::GAME_OVER
             @winner = @player_a
         end
     end
