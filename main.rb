@@ -1,7 +1,5 @@
-
 require 'rubygems'
 require 'gosu'
-
 require './player.rb'
 require './bullet.rb'
 require './obstacle.rb'
